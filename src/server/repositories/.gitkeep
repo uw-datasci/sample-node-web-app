@@ -1,0 +1,12 @@
+# Repositories
+
+This folder contains data access layer code (repositories) for database operations.
+Use this folder for code that handles direct database queries, data fetching, and persistence logic.
+
+## Organization Guidelines
+
+- Create separate files for each entity or resource
+- Use descriptive names: `user-repository.ts`, `product-repository.ts`, `order-repository.ts`
+- Each repository should handle CRUD operations for a single entity type
+- Group related repository methods in the same file
+- Keep repositories focused on data access only, not business logic

@@ -1,0 +1,12 @@
+# API Routes
+
+This folder contains Next.js API route handlers.
+Use this folder for server-side API endpoints that handle HTTP requests (GET, POST, PUT, DELETE, etc.).
+
+## Organization Guidelines
+
+- Create subfolders for each route path (Next.js App Router convention)
+- Each subfolder should contain a `route.ts` file: `api/users/route.ts`, `api/products/route.ts`
+- Group related endpoints in the same route file using HTTP method handlers
+- Use descriptive folder names that match your API structure: `api/auth/route.ts`, `api/orders/route.ts`
+- Keep route handlers focused on request/response handling, delegate business logic to services

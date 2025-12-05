@@ -1,0 +1,11 @@
+# Server Configuration
+
+This folder contains server-side configuration files and setup.
+Use this folder for configuration files, environment setup, and server initialization code.
+
+## Organization Guidelines
+
+- Create separate files for different configuration concerns
+- Common files: `database.ts` (DB config), `env.ts` (environment variables), `constants.ts` (app constants)
+- Keep configuration files focused and single-purpose
+- Use index files to export all configuration for centralized access

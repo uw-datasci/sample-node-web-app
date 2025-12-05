@@ -1,0 +1,12 @@
+# Server Services
+
+This folder contains server-side business logic services.
+Use this folder for services that handle core business logic, data processing, and orchestration.
+
+## Organization Guidelines
+
+- Create separate files for each business domain or feature
+- Use descriptive names: `user-service.ts`, `order-service.ts`, `payment-service.ts`
+- Group related service methods in the same file
+- Services should orchestrate between repositories and handle business rules
+- Keep services focused on a single domain or feature area
