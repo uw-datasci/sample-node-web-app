@@ -63,7 +63,6 @@ jobs:
       - name: Build application
         run: pnpm build
 
-  # JOB 3: SONARQUBE
   # Sonar usually wants test coverage reports. If you have tests,
   # run them in a previous job and upload the coverage artifact.
   sonar:
