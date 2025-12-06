@@ -5,33 +5,30 @@ on:
     branches: [main]
     paths-ignore:
       - ".github/**"
-  workflow_dispatch:
+
+# Optimization: Cancel previous runs if a new commit is pushed to the PR
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  quality-gate:
-    name: Quality Gate
+  code-quality:
+    name: Lint & Typecheck
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 10.16.0
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4
         with:
           version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -40,14 +37,84 @@ jobs:
         run: pnpm lint
 
       - name: Run TypeScript type check
+        if: always()
         run: pnpm typecheck
 
-      # - name: Run SonarQube Scan
-      #   uses: sonarsource/sonarqube-scan-action@v5
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      #     SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-      #     SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+  build:
+    name: Build Application
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
       - name: Build application
         run: pnpm build
+
+  # JOB 3: SONARQUBE
+  # Sonar usually wants test coverage reports. If you have tests,
+  # run them in a previous job and upload the coverage artifact.
+  sonar:
+    name: SonarQube Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: SonarQube Scan
+        uses: sonarsource/sonarqube-scan-action@v5
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+  quality-summary:
+    name: Quality Gate Summary
+    runs-on: ubuntu-latest
+    needs: [code-quality, build]
+    if: always()
+    permissions:
+      pull-requests: write
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        if: github.event_name == 'pull_request'
+        uses: actions/checkout@v4
+
+      - name: Post PR Comment
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { main } = require('./.github/scripts/ci/quality-gate-report.js');
+
+            const jobResults = {
+              codeQuality: '${{ needs.code-quality.result }}',
+              build: '${{ needs.build.result }}'
+            };
+
+            await main({ github, context, core }, jobResults)
+
+      - name: Check quality gate status
+        run: |
+          if [ "${{ needs.code-quality.result }}" == "success" ] && \
+          [ "${{ needs.build.result }}" == "success" ]; then
+            exit 0
+          else
+            exit 1
+          fi
