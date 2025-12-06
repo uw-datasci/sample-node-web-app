@@ -5,8 +5,8 @@ on:
     branches: [main]
     paths-ignore:
       - ".github/**"
+  workflow_dispatch:
 
-# Optimization: Cancel previous runs if a new commit is pushed to the PR
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
