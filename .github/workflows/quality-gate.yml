@@ -90,30 +90,9 @@ jobs:
       contents: read
 
     steps:
-      - name: Checkout repository
-        if: github.event_name == 'pull_request'
-        uses: actions/checkout@v4
-
-      - name: Post PR Comment
-        if: github.event_name == 'pull_request'
-        uses: actions/github-script@v7
+      - name: Post Quality Gate Summary
+        uses: uw-datasci/quality-summary@v1
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const { main } = require('./.github/scripts/ci/quality-gate-report.js');
-
-            const jobResults = {
-              codeQuality: '${{ needs.code-quality.result }}',
-              build: '${{ needs.build.result }}'
-            };
-
-            await main({ github, context, core }, jobResults)
-
-      - name: Check quality gate status
-        run: |
-          if [ "${{ needs.code-quality.result }}" == "success" ] && \
-          [ "${{ needs.build.result }}" == "success" ]; then
-            exit 0
-          else
-            exit 1
-          fi
+          code-quality-result: ${{ needs.code-quality.result }}
+          build-result: ${{ needs.build.result }}
