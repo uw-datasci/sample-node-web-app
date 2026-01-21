@@ -33,6 +33,9 @@ A modern Next.js template with TypeScript, Tailwind CSS, and shadcn/ui component
    Edit [.github/workflows/quality-gate.yml](.github/workflows/quality-gate.yml):
    - Set `INFISICAL_SECRET_PATH` to `/{APP_NAME}`
 
+   Edit [.github/workflows/migrate-db.yml](.github/workflows/migrate-db.yml):
+   - Uncomment the push trigger
+
 4. Start development:
    ```bash
    pnpm dev
