@@ -5,84 +5,72 @@ on:
     branches: [main]
     paths-ignore:
       - ".github/**"
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  NODE_VERSION: 22
+  PNPM_VERSION: 10.26.0
+  INFISICAL_PROJECT_SLUG: uwdsc-54e-y
+  INFISICAL_SECRET_PATH: <insert-path-here> # TODO: Update this value
+
 jobs:
-  code-quality:
-    name: Lint & Typecheck
+  setup:
+    name: Setup & Install Dependencies
     runs-on: ubuntu-latest
+    outputs:
+      node-version: ${{ env.NODE_VERSION }}
+      pnpm-version: ${{ env.PNPM_VERSION }}
+      infisical-project-slug: ${{ env.INFISICAL_PROJECT_SLUG }}
+      infisical-secret-path: ${{ env.INFISICAL_SECRET_PATH }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
-      - name: Install pnpm
+      - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 9
+          version: ${{ env.PNPM_VERSION }}
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Node
+        uses: actions/setup-node@v6
         with:
-          node-version: "20"
-          cache: "pnpm"
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Run ESLint
-        run: pnpm lint
-
-      - name: Run TypeScript type check
-        if: always()
-        run: pnpm typecheck
+  code-quality:
+    name: Code Quality
+    needs: setup
+    uses: uw-datasci/nexus-workflows/.github/workflows/quality-gate.yml@v4
+    with:
+      node-version: ${{ needs.setup.outputs.node-version }}
+      pnpm-version: ${{ needs.setup.outputs.pnpm-version }}
+      lint-command: pnpm lint
+      typecheck-command: pnpm typecheck
 
   build:
-    name: Build Application
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+    name: Build
+    needs: [setup, code-quality]
+    uses: uw-datasci/nexus-workflows/.github/workflows/build-node.yml@v4
+    with:
+      node-version: ${{ needs.setup.outputs.node-version }}
+      pnpm-version: ${{ needs.setup.outputs.pnpm-version }}
+      build-command: pnpm build
+      infisical-project-slug: ${{ needs.setup.outputs.infisical-project-slug }}
+      infisical-secret-path: ${{ needs.setup.outputs.infisical-secret-path }}
+    secrets:
+      INFISICAL_CLIENT_ID: ${{ secrets.INFISICAL_CLIENT_ID }}
+      INFISICAL_CLIENT_SECRET: ${{ secrets.INFISICAL_CLIENT_SECRET }}
 
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 9
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          cache: "pnpm"
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Build application
-        run: pnpm build
-
-  # Sonar usually wants test coverage reports. If you have tests,
-  # run them in a previous job and upload the coverage artifact.
-  sonar:
-    name: SonarQube Scan
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: SonarQube Scan
-        uses: sonarsource/sonarqube-scan-action@v6
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-
+  
   quality-summary:
     name: Quality Gate Summary
     runs-on: ubuntu-latest
-    needs: [code-quality, build, sonar]
+    needs: [code-quality, build]
     if: always()
     permissions:
       pull-requests: write
@@ -90,8 +78,8 @@ jobs:
 
     steps:
       - name: Post Quality Gate Summary
-        uses: uw-datasci/quality-summary@v1
+        uses: uw-datasci/nexus-quality-summary@v1
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           code-quality-result: ${{ needs.code-quality.result }}
-          build-result: ${{ needs.build.result }}
+          build-result: ${{ needs.build.result == 'success' }}

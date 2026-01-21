@@ -8,12 +8,14 @@
     "start": "next start",
     "lint": "eslint --max-warnings 0",
     "typecheck": "tsc --noEmit",
-    "ui:add": "node scripts/ui-add.mjs"
+    "ui:add": "node scripts/ui-add.mjs",
+    "pull-secrets": "node scripts/pull-secrets.js"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.2.4",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "dotenv": "^17.2.3",
     "framer-motion": "^12.23.25",
     "lucide-react": "^0.555.0",
     "next": "16.0.7",
