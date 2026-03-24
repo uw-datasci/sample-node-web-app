@@ -25,7 +25,7 @@ console.log(`🔧 Adding shadcn component: ${componentName}`);
 console.log(`📁 Working directory: ${projectRoot}`);
 
 // Run the shadcn command
-const child = spawn("pnpm", ["dlx", "shadcn@canary", "add", componentName], {
+const child = spawn("pnpm", ["dlx", "shadcn@latest", "add", componentName], {
   cwd: projectRoot,
   stdio: "inherit",
   shell: true,
